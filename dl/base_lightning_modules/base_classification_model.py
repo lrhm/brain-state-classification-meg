@@ -14,8 +14,7 @@ class BaseClassificationModel(LightningModule):
         self.params = params
         self.save_hyperparameters()
         self.generator = t.nn.Sequential()
-        loss = t.nn.BCELoss()
-        self.loss = lambda x, y: loss(x.flatten(), y.flatten())  # t.nn.MSELoss()
+        self.loss = t.nn.BCELoss()
 
     def forward(self, z: t.Tensor) -> t.Tensor:
         out = self.generator(z)
@@ -55,19 +54,11 @@ class BaseClassificationModel(LightningModule):
             pass
 
         pred_y = self(x)
-        se = F.mse_loss(pred_y, y, reduction="sum")
-        denorm_pred_y = self.data_manager.denormalize(pred_y, self.device)
-        denorm_y = self.data_manager.denormalize(y, self.device)
-        ae = F.l1_loss(denorm_pred_y, denorm_y, reduction="sum")
-        mask_pred_y = self.data_manager.discretize(denorm_pred_y, self.device)
-        mask_y = self.data_manager.discretize(denorm_y, self.device)
         tn, fp, fn, tp = t.bincount(
-            mask_y.flatten() * 2 + mask_pred_y.flatten(), minlength=4,
+            y * 2 + pred_y, minlength=4,
         )
-        total_lengh = mask_y.numel()
+        total_lengh = y.numel()
         return {
-            "se": se,
-            "ae": ae,
             "tn": tn,
             "fp": fp,
             "fn": fn,
@@ -77,8 +68,6 @@ class BaseClassificationModel(LightningModule):
 
     def test_epoch_end(self, outputs):
         total_lenght = sum([x["total_lengh"] for x in outputs])
-        mse = t.stack([x["se"] for x in outputs]).sum() / total_lenght
-        mae = t.stack([x["ae"] for x in outputs]).sum() / total_lenght
         tn = t.stack([x["tn"] for x in outputs]).sum() / total_lenght
         fp = t.stack([x["fp"] for x in outputs]).sum() / total_lenght
         fn = t.stack([x["fn"] for x in outputs]).sum() / total_lenght
@@ -88,22 +77,12 @@ class BaseClassificationModel(LightningModule):
         accuracy = (tp + tn) / (tp + tn + fp + fn)
         f1 = 2 * precision * recall / (precision + recall)
         test_metrics = {
-            "mse": mse,
-            "mae": mae,
             "precision": precision,
             "recall": recall,
             "accuracy": accuracy,
             "f1": f1,
         }
         test_metrics = {k: v for k, v in test_metrics.items()}
-        """
-        self.log("test_mse", mse.item())
-        self.log("test_mae", mae.item())
-        self.log("test_accuracy", accuracy.item(), prog_bar=True)
-        self.log("test_precision", precision.item(), prog_bar=True)
-        self.log("test_recall", recall.item(), prog_bar=True)
-        self.log("test_f1", f1.item(), prog_bar=True)
-        """
         self.log("test_performance", test_metrics, prog_bar=True)
 
     def configure_optimizers(self):
