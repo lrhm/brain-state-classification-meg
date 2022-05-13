@@ -16,7 +16,8 @@ class BaseClassificationModel(LightningModule):
         self.save_hyperparameters()
         self.generator = t.nn.Sequential()
         self.loss = t.nn.BCELoss()
-        self.accuracy = torchmetrics.Accuracy()
+        self.val_accuracy = torchmetrics.Accuracy()
+        self.test_accuracy = torchmetrics.Accuracy()
 
     def forward(self, z: t.Tensor) -> t.Tensor:
         out = self.generator(z)
@@ -29,9 +30,9 @@ class BaseClassificationModel(LightningModule):
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs):
-        acc = self.accuracy.compute()
+        acc = self.val_accuracy.compute()
         self.log("val_loss", acc, prog_bar=True)
-        self.accuracy.reset()
+        self.val_accuracy.reset()
         t.save(
             self.state_dict(), os.path.join(self.params.save_path, "checkpoint.ckpt"),
         )
@@ -49,46 +50,24 @@ class BaseClassificationModel(LightningModule):
         maxes = t.argmax(pred_y, dim=1)
         pred_y = t.eye(4)[maxes].to(self.device)
         y = y.int()
-        self.accuracy.update(pred_y, y)
+        self.val_accuracy.update(pred_y, y)
 
     def test_step(self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int):
         x, y = batch
         if batch_idx == 0:
             pass
-
-        pred_y = self(x).cpu()
-        idx = t.argmax(pred_y)
-        pred_y = t.zeros(pred_y.shape)
-        pred_y[idx] = 1
-        pred_y = pred_y.flatten()
-        y = y.flatten().cpu()
-        tn, fp, fn, tp = t.bincount(
-            y * 2 + pred_y, minlength=4,
-        )
-        total_lengh = y.numel()
-        return {
-            "tn": tn,
-            "fp": fp,
-            "fn": fn,
-            "tp": tp,
-            "total_lengh": total_lengh,
-        }
+        pred_y = self(x)
+        maxes = t.argmax(pred_y, dim=1)
+        pred_y = t.eye(4)[maxes].to(self.device)
+        y = y.int()
+        self.test_accuracy.update(pred_y, y)
+        return 
 
     def test_epoch_end(self, outputs):
-        total_lenght = sum([x["total_lengh"] for x in outputs])
-        tn = t.stack([x["tn"] for x in outputs]).sum() / total_lenght
-        fp = t.stack([x["fp"] for x in outputs]).sum() / total_lenght
-        fn = t.stack([x["fn"] for x in outputs]).sum() / total_lenght
-        tp = t.stack([x["tp"] for x in outputs]).sum() / total_lenght
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        accuracy = (tp + tn) / (tp + tn + fp + fn)
-        f1 = 2 * precision * recall / (precision + recall)
+        accuracy = self.test_accuracy.compute()
+        self.test_accuracy.reset()
         test_metrics = {
-            "precision": precision,
-            "recall": recall,
             "accuracy": accuracy,
-            "f1": f1,
         }
         test_metrics = {k: v for k, v in test_metrics.items()}
         self.log("test_performance", test_metrics, prog_bar=True)
