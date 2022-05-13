@@ -53,7 +53,7 @@ class BaseClassificationModel(LightningModule):
         if batch_idx == 0:
             pass
 
-        pred_y = self(x)
+        pred_y = self(x).cpu()
         tn, fp, fn, tp = t.bincount(
             y * 2 + pred_y, minlength=4,
         )
