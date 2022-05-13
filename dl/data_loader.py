@@ -16,7 +16,7 @@ class CustomDataModule(LightningDataModule):
         self.test_batch_size = params.test_batch_size
         self.data_location = params.data_location
         self.params = params
-        preprocessed = preprocess()
+        preprocessed = preprocess(self.data_location)
         self.train_data = preprocessed["train"]
         self.test_data = preprocessed["test"]
 
@@ -62,7 +62,7 @@ class CustomDataset(Dataset):
         return len(self.data[0])
 
     def __getitem__(self, idx):
-        return self.data[0][idx], self.data[1][idx]
+        return self.data[1][idx].unsqueeze(0), self.data[0][idx][0]
 
 
 def test():

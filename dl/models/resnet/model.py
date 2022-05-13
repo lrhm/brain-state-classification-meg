@@ -1,4 +1,4 @@
-from ...base_gan_model import GANLightning
+from ...base_lightning_modules import 
 from ...models_components.resnet3d import (
     ResNet3DAutoEncoder,
     ResNet3DClassifier,

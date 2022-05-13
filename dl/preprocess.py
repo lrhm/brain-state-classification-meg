@@ -42,13 +42,13 @@ def assign_labels(data: tuple[tuple[str, str, t.Tensor], ...]):
     return merged_data_with_labels
 
 
-def extract_preprocessed(i, j, labels:t.Tensor, data: t.Tensor, filter_freq: int):
-    section = data[:, :, i: j] 
-    label_section = labels[:, :, i: j]
+def extract_preprocessed(i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int):
+    section = data[:, :, i:j]
+    label_section = labels[:, :, i:j]
     section = t.fft.rfft(section, dim=2)[:, :, :filter_freq]
     section = t.view_as_real(section).view(section.shape[0], section.shape[1], -1)
-    section[:, :2] = label_section[:,:, :section.shape[-1]]
-    return section 
+    section[:, :2] = label_section[:, :, : section.shape[-1]]
+    return section
 
 
 def window_data(
@@ -77,14 +77,18 @@ def window_data(
     )
     permuting_idxs = t.randperm(normalized.shape[0])
     normalized = normalized[permuting_idxs]
+    """
     cutting_idx = int(0.2*normalized.shape[0])
     test = normalized[:cutting_idx]
     train = normalized[cutting_idx:]
+
     train_labels = train[:, :2, 0]
     train_data = train[:, 2:]
     test_labels = test[:, :2, 0]
     test_data = test[:, 2:]
-    return {'train':(train_labels, train_data), 'test':(test_labels, test_data)}
+    """
+    # return {'train':(train_labels, train_data), 'test':(test_labels, test_data)}
+    return normalized
 
 
 def frequency_analisys(data: t.Tensor):
@@ -97,6 +101,7 @@ def frequency_analisys(data: t.Tensor):
         axes[i].plot(vars[i, :, 1])
     plt.show()
 
+
 """
 def downsample(data: t.Tensor, cut_freq: int = 100) -> t.Tensor:
     downsampled_data = t.view_as_real(data)[:, :, :cut_freq].reshape(
@@ -105,14 +110,17 @@ def downsample(data: t.Tensor, cut_freq: int = 100) -> t.Tensor:
     return data
 """
 
+
 def normalize_freqs(windowed_data: t.Tensor):
     maxs = t.max(windowed_data, dim=2)[0].unsqueeze(-1)
     mins = t.min(windowed_data, dim=2)[0].unsqueeze(-1)
-    windowed_data[:,2:] =  (windowed_data[:,2:] - mins[:,2:]) / (maxs[:,2:] - mins[:,2:])
+    windowed_data[:, 2:] = (windowed_data[:, 2:] - mins[:, 2:]) / (
+        maxs[:, 2:] - mins[:, 2:]
+    )
     return windowed_data
 
 
-def preprocess(data_location="/mnt/dla3/Data_Ass3/Cross/train"):
+def sub_preprocess(data_location="/mnt/dla3/Data_Ass3/Cross/train"):
     print("Preprocessing data...")
     files = tuple(os.path.join(data_location, f) for f in os.listdir(data_location))
     all_files = tuple(
@@ -121,7 +129,29 @@ def preprocess(data_location="/mnt/dla3/Data_Ass3/Cross/train"):
     labeled = assign_labels(all_files)
     result = window_data(labeled, step_size=150)
     print("Done!")
-    return result 
+    return result
+
+
+def preprocess(data_location="/mnt/dla3/Data_Ass3/Cross"):
+    test_data_with_labels = t.cat(
+        tuple(
+            sub_preprocess(os.path.join(data_location, f))
+            for f in os.listdir(data_location)
+            if "test" in f
+        )
+    )
+    test_labels = test_data_with_labels[:, :2, 0]
+    test_data = test_data_with_labels[:, 2:]
+    train_data_with_labels = t.cat(
+        tuple(
+            sub_preprocess(os.path.join(data_location, f))
+            for f in os.listdir(data_location)
+            if "train" in f
+        )
+    )
+    train_labels = train_data_with_labels[:, :2, 0]
+    train_data = train_data_with_labels[:, 2:]
+    return {'train':(train_labels, train_data), 'test':(test_labels, test_data)}
 
 
 if __name__ == "__main__":
