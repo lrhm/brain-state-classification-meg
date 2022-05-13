@@ -44,7 +44,7 @@ class BaseClassificationModel(LightningModule):
             pass
         y = y.cpu()
         pred_y = self(x).cpu()
-        loss = F.mse_loss(pred_y, y)
+        loss = self.loss(pred_y, y)
         # self.log("val_mse", loss, prog_bar=True)
         return {"val_mse": loss, "val_loss": loss}
 
