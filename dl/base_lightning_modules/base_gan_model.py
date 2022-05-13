@@ -98,7 +98,6 @@ class GANLightning(BaseModel):
         avg_loss = t.stack([x[0]["train_mse"] for x in outputs]).mean()
         self.log("train_mse", avg_loss, prog_bar=True)
 
-    
     def configure_optimizers(self):
         lr = self.params.lr
         b1 = self.params.b1
