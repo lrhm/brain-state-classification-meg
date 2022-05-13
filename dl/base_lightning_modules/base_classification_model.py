@@ -6,7 +6,8 @@ from argparse import Namespace
 import matplotlib.pyplot as plt
 import ipdb
 import os
-
+import torchmetrics
+from torchmetrics.classification import accuracy
 
 class BaseClassificationModel(LightningModule):
     def __init__(self, params: Namespace):
@@ -15,6 +16,7 @@ class BaseClassificationModel(LightningModule):
         self.save_hyperparameters()
         self.generator = t.nn.Sequential()
         self.loss = t.nn.BCELoss()
+        self.accuracy = torchmetrics.Accuracy()
 
     def forward(self, z: t.Tensor) -> t.Tensor:
         out = self.generator(z)
@@ -27,8 +29,8 @@ class BaseClassificationModel(LightningModule):
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs):
-        avg_loss = t.stack([x["val_loss"] for x in outputs]).mean()
-        self.log("val_loss", avg_loss, prog_bar=True)
+        self.log("val_acc", self.accuracy.compute(), prog_bar=True)
+        self.accuracy.reset()
         t.save(
             self.state_dict(), os.path.join(self.params.save_path, "checkpoint.ckpt"),
         )
@@ -42,11 +44,8 @@ class BaseClassificationModel(LightningModule):
         x, y = batch
         if batch_idx == 0:
             pass
-        y = y.cpu()
-        pred_y = self(x).cpu()
-        loss = self.loss(pred_y, y)
-        # self.log("val_mse", loss, prog_bar=True)
-        return {"val_mse": loss, "val_loss": loss}
+        pred_y = self(x)
+        self.accuracy.update(pred_y, y)
 
     def test_step(self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int):
         x, y = batch
