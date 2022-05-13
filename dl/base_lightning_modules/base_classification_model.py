@@ -54,8 +54,13 @@ class BaseClassificationModel(LightningModule):
             pass
 
         pred_y = self(x).cpu()
+        idx = t.argmax(pred_y)
+        pred_y = t.zeros(pred_y.shape)
+        pred_y[idx] = 1
+        pred_y = pred_y.flatten()
+        y = y.flatten().cpu()
         tn, fp, fn, tp = t.bincount(
-            y.cpu() * 2 + pred_y, minlength=4,
+            y * 2 + pred_y, minlength=4,
         )
         total_lengh = y.numel()
         return {
