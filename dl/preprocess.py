@@ -111,10 +111,10 @@ def downsample(data: t.Tensor, cut_freq: int = 100) -> t.Tensor:
 """
 
 
-def normalize_freqs(windowed_data: t.Tensor, fancy=True):
+def normalize_freqs(windowed_data: t.Tensor, fancy=False):
     if not fancy:
-        maxs = t.max(windowed_data, dim=0)[0].unsqueeze(-1)[:, 2:]
-        mins = t.min(windowed_data, dim=2)[0].unsqueeze(-1)[:, 2:]
+        maxs = t.max(windowed_data, dim=2)[0][:, 2:,None]
+        mins = t.min(windowed_data, dim=2)[0][:, 2:, None]
     else:
         maxs = t.max(t.max(windowed_data, dim=0)[0], dim=0)[0][None, None]
         mins = t.min(t.min(windowed_data, dim=0)[0], dim=0)[0][None, None]
