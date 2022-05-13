@@ -62,8 +62,10 @@ class CustomDataset(Dataset):
         return len(self.data[0])
 
     def __getitem__(self, idx):
-        return self.data[1][idx].unsqueeze(0), self.data[0][idx][0]
-
+        labels = self.data[0][idx][0].int()
+        # turns labels into one-hot encoding
+        labels = t.eye(4)[labels]
+        return self.data[1][idx].unsqueeze(0), labels
 
 def test():
     data_module = CustomDataModule()
