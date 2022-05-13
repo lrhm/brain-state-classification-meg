@@ -8,7 +8,7 @@ import torchvision
 
 from numpy import prod
 from torch import nn, optim
-from dcgan.dense_layer import AVGPoolConcatDenseLayer
+from .dense_layer import AVGPoolConcatDenseLayer
 
 from .conv2dmodel import GaussianNoise
 
@@ -434,7 +434,7 @@ class ResNetFrameDiscriminator(nn.Module):
         ):  # => Don't apply non-linearity on output
             self.input_net = nn.Sequential(
                 nn.Conv2d(
-                    self.params["out_seq_len"],
+                    1,
                     c_hidden[0],
                     kernel_size=3,
                     padding=1,
@@ -444,7 +444,7 @@ class ResNetFrameDiscriminator(nn.Module):
         else:
             self.input_net = nn.Sequential(
                 nn.Conv2d(
-                    self.params["out_seq_len"],
+                    1,
                     c_hidden[0],
                     kernel_size=3,
                     padding=1,
@@ -471,17 +471,12 @@ class ResNetFrameDiscriminator(nn.Module):
                 )
         self.blocks = nn.Sequential(*blocks)
 
-        # Mapping to classification output
-        if self.outputblock == "avgpool_plus_dense":
-
-            self.output_net = AVGPoolConcatDenseLayer(self.params, c_hidden[-1], 16, 64)
-        else:
-            self.output_net = nn.Sequential(
-                nn.AdaptiveAvgPool2d((1, 1)),
-                nn.Flatten(),
-                nn.Linear(c_hidden[-1], 1),
-                nn.Sigmoid(),
-            )
+        self.output_net = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Linear(c_hidden[-1], 1),
+            nn.Sigmoid(),
+        )
 
     def _init_params(self):
         # Based on our discussion in Tutorial 4, we should initialize the convolutions according to the activation function
