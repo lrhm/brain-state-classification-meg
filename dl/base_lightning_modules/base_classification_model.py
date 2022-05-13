@@ -29,12 +29,13 @@ class BaseClassificationModel(LightningModule):
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs):
-        self.log("val_acc", self.accuracy.compute(), prog_bar=True)
+        acc = self.accuracy.compute()
+        self.log("val_acc", acc, prog_bar=True)
         self.accuracy.reset()
         t.save(
             self.state_dict(), os.path.join(self.params.save_path, "checkpoint.ckpt"),
         )
-        return {"val_mse": avg_loss}
+        return {"val_loss": acc}
 
     def training_epoch_end(self, outputs):
         avg_loss = t.stack([x["loss"] for x in outputs]).mean()
@@ -45,6 +46,9 @@ class BaseClassificationModel(LightningModule):
         if batch_idx == 0:
             pass
         pred_y = self(x)
+        maxes = t.argmax(pred_y, dim=1)
+        pred_y = t.eye(4)[maxes].to(self.device)
+        y = y.int()
         self.accuracy.update(pred_y, y)
 
     def test_step(self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int):
