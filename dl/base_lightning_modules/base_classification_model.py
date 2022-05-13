@@ -30,7 +30,7 @@ class BaseClassificationModel(LightningModule):
 
     def validation_epoch_end(self, outputs):
         acc = self.accuracy.compute()
-        self.log("val_acc", acc, prog_bar=True)
+        self.log("val_loss", acc, prog_bar=True)
         self.accuracy.reset()
         t.save(
             self.state_dict(), os.path.join(self.params.save_path, "checkpoint.ckpt"),
