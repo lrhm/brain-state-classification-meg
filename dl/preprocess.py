@@ -52,7 +52,7 @@ def extract_preprocessed(i, j, labels: t.Tensor, data: t.Tensor, filter_freq: in
 
 
 def window_data(
-    data: t.Tensor, step_size: int, *, window_size: int = 1000, filter_freq: int = 50
+    data: t.Tensor, step_size: int, *, window_size: int = 1200, filter_freq: int = 60
 ):
     # creates a list of overlapping segments
     vars = t.var(data[:, 2:], dim=2).unsqueeze(-1)
@@ -111,11 +111,15 @@ def downsample(data: t.Tensor, cut_freq: int = 100) -> t.Tensor:
 """
 
 
-def normalize_freqs(windowed_data: t.Tensor):
-    maxs = t.max(windowed_data, dim=2)[0].unsqueeze(-1)
-    mins = t.min(windowed_data, dim=2)[0].unsqueeze(-1)
-    windowed_data[:, 2:] = (windowed_data[:, 2:] - mins[:, 2:]) / (
-        maxs[:, 2:] - mins[:, 2:]
+def normalize_freqs(windowed_data: t.Tensor, fancy=True):
+    if not fancy:
+        maxs = t.max(windowed_data, dim=0)[0].unsqueeze(-1)[:, 2:]
+        mins = t.min(windowed_data, dim=2)[0].unsqueeze(-1)[:, 2:]
+    else:
+        maxs = t.max(t.max(windowed_data, dim=0)[0], dim=0)[0][None, None]
+        mins = t.min(t.min(windowed_data, dim=0)[0], dim=0)[0][None, None]
+    windowed_data[:, 2:, :] = (windowed_data[:, 2:] - mins) / (
+        maxs - mins
     )
     return windowed_data
 
