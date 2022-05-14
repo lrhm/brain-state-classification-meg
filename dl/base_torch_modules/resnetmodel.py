@@ -313,6 +313,7 @@ class ResNetBlock(nn.Module):
             act_fn(),
             nn.Conv2d(c_out, c_out, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(c_out),
+            nn.Dropout(0.3)
         )
 
         # 1x1 convolution with stride 2 means we take the upper left value, and transform it to new output size
@@ -474,8 +475,8 @@ class ResNetFrameDiscriminator(nn.Module):
         self.output_net = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            nn.Linear(c_hidden[-1], 1),
-            nn.Sigmoid(),
+            nn.Linear(c_hidden[-1], 4),
+            nn.Softmax(dim=1),
         )
 
     def _init_params(self):
@@ -509,7 +510,7 @@ class ResNetFrameDiscriminator(nn.Module):
         # ipdb.set_trace()
 
         x = self.output_net(x)
-        return x.squeeze(1)
+        return x
 
 
 class ResNetTemproalDiscriminator(nn.Module):
