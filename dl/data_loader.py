@@ -6,7 +6,7 @@ from tqdm import tqdm
 import h5py
 from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import LightningDataModule
-from .preprocess import preprocess
+from .preprocess.preprocess import preprocess
 
 class CustomDataModule(LightningDataModule):
     def __init__(self, params):
