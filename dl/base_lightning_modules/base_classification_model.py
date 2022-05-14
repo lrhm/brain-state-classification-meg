@@ -31,7 +31,8 @@ class BaseClassificationModel(LightningModule):
 
     def validation_epoch_end(self, outputs):
         acc = self.val_accuracy.compute()
-        self.log("val_loss", acc, prog_bar=True)
+        self.log("accuracy", acc, prog_bar=True)
+        self.log("val_loss", 1 - acc, prog_bar=True)
         self.val_accuracy.reset()
         t.save(
             self.state_dict(), os.path.join(self.params.save_path, "checkpoint.ckpt"),
@@ -40,7 +41,6 @@ class BaseClassificationModel(LightningModule):
 
     def training_epoch_end(self, outputs):
         avg_loss = t.stack([x["loss"] for x in outputs]).mean()
-        self.log("loss", avg_loss, prog_bar=True)
 
     def validation_step(self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int):
         x, y = batch
@@ -77,8 +77,21 @@ class BaseClassificationModel(LightningModule):
         b1 = self.params.b1
         b2 = self.params.b2
 
-        generator_optimizer = t.optim.Adam(
+        optimizer = t.optim.Adam(
             self.generator.parameters(), lr=lr, betas=(b1, b2)
         )
+        
+        scheduler = t.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=0.1,
+            patience=self.params.reduce_lr_on_plateau_patience,
+            min_lr=1e-6,
+            verbose=True,
+        )
 
-        return generator_optimizer
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "val_loss",
+        }
