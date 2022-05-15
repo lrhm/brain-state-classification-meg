@@ -313,7 +313,7 @@ class ResNetBlock(nn.Module):
             act_fn(),
             nn.Conv2d(c_out, c_out, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(c_out),
-            nn.Dropout(0.3)
+            nn.Dropout(0.3),
         )
 
         # 1x1 convolution with stride 2 means we take the upper left value, and transform it to new output size
@@ -434,23 +434,11 @@ class ResNetFrameDiscriminator(nn.Module):
             self.hparams.block_class == PreActResNetBlock
         ):  # => Don't apply non-linearity on output
             self.input_net = nn.Sequential(
-                nn.Conv2d(
-                    1,
-                    c_hidden[0],
-                    kernel_size=3,
-                    padding=1,
-                    bias=False,
-                )
+                nn.Conv2d(1, c_hidden[0], kernel_size=3, padding=1, bias=False,)
             )
         else:
             self.input_net = nn.Sequential(
-                nn.Conv2d(
-                    1,
-                    c_hidden[0],
-                    kernel_size=3,
-                    padding=1,
-                    bias=False,
-                ),
+                nn.Conv2d(1, c_hidden[0], kernel_size=3, padding=1, bias=False,),
                 nn.BatchNorm2d(c_hidden[0]),
                 self.hparams.act_fn(),
             )

@@ -16,6 +16,6 @@
 	"max_epochs": 100,
 	"early_stopping_patience": 5,
 	"reduce_lr_on_plateau_patience": 2,
-	"data_location": "/mnt/dla3/Data_Ass3/Intra/",
+	"data_location": "/mnt/dla3/Data_Ass3/Cross/",
 	"crop":64
 }

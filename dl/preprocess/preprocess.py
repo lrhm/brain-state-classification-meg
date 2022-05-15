@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import ipdb
 import pywt
 
+
 def get_dataset_name(file_name: str):
     return "_".join(os.path.basename(file_name).split("_")[:-1])
 
@@ -17,9 +18,7 @@ def get_file_content(file_name: str):
 
 def extract_labels(f_name: str, data: t.Tensor):
     split_name = os.path.basename(f_name).split("_")
-    task = (
-        "_".join(split_name[1:-2]) if ("task" in split_name) else split_name[0]
-    )
+    task = "_".join(split_name[1:-2]) if ("task" in split_name) else split_name[0]
     subject = split_name[-2]
     return task, subject, data
 
@@ -36,8 +35,7 @@ def assign_labels(data: tuple[tuple[str, str, t.Tensor], ...]):
     ).unsqueeze(1)
     subjects = t.tensor(
         tuple(
-            tuple(subject_map[subject] for _ in range(seq_size))
-            for subject in subjects
+            tuple(subject_map[subject] for _ in range(seq_size)) for subject in subjects
         )
     ).unsqueeze(1)
     merged_data = t.stack(tensors)
@@ -51,24 +49,21 @@ def extract_preprocessed(
     section = data[:, :, i:j]
     label_section = labels[:, :, i:j]
     if method == "fourier":
-        section = t.fft.rfft(section, dim=2)[:, :, :filter_freq]
-        section = t.view_as_real(section).view(
-            section.shape[0], section.shape[1], -1
+        section = t.fft.rfft(section, dim=2)[:, :, 5:filter_freq]
+        section = t.view_as_real(section).view(section.shape[0], section.shape[1], -1)
+    elif method == "wavelet":
+        # computes wavelet
+        section = t.from_numpy(pywt.cwt(section.numpy(), 4, "mexh", axis=2)[0]).squeeze(
+            0
         )
-    else:
-    # computes wavelet
-        section = t.from_numpy(pywt.cwt(section.numpy(), 4 , 'mexh', axis=2)[0]).squeeze(0)
+        # section = t.cat((section[:,:,:20], section[:,:,-20:]), dim=2)
         ipdb.set_trace()
     section[:, :2] = label_section[:, :, : section.shape[-1]]
     return section
 
 
 def window_data(
-    data: t.Tensor,
-    step_size: int,
-    *,
-    window_size: int = 1500,
-    filter_freq: int = 30
+    data: t.Tensor, step_size: int, *, window_size: int = 1500, filter_freq: int = 300
 ):
     # creates a list of overlapping segments
     vars = t.var(data[:, 2:], dim=2).unsqueeze(-1)
@@ -80,17 +75,11 @@ def window_data(
     while i * step_size + window_size < data.shape[2]:
         segments.append(
             extract_preprocessed(
-                i * step_size,
-                i * step_size + window_size,
-                labels,
-                data,
-                filter_freq,
+                i * step_size, i * step_size + window_size, labels, data, filter_freq,
             )
         )
         i += 1
-    segments.append(
-        extract_preprocessed(-window_size, None, labels, data, filter_freq)
-    )
+    segments.append(extract_preprocessed(-window_size, None, labels, data, filter_freq))
     merged_segments = t.stack(segments, dim=2).permute(0, 2, 1, 3)
     normalized = normalize_freqs(
         merged_segments.reshape(
@@ -146,13 +135,9 @@ def normalize_freqs(windowed_data: t.Tensor, fancy=True):
 
 def sub_preprocess(data_location="/mnt/dla3/Data_Ass3/Cross/train"):
     print("Preprocessing data...")
-    files = tuple(
-        os.path.join(data_location, f) for f in os.listdir(data_location)
-    )
+    files = tuple(os.path.join(data_location, f) for f in os.listdir(data_location))
     all_files = tuple(
-        extract_labels(f, get_file_content(f))
-        for f in files
-        if f.endswith(".h5")
+        extract_labels(f, get_file_content(f)) for f in files if f.endswith(".h5")
     )
     labeled = assign_labels(all_files)
     result = window_data(labeled, step_size=500)

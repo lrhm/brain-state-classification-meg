@@ -31,7 +31,6 @@ class ConvModel(nn.Module):
             nn.Conv2d(128, 256, kernel_size=3),
             nn.ReLU(),
             nn.MaxPool2d(2),
-
         )
         self.linear = nn.Linear(128, 4)
 

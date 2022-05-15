@@ -9,6 +9,7 @@ import os
 import torchmetrics
 from torchmetrics.classification import accuracy
 
+
 class BaseClassificationModel(LightningModule):
     def __init__(self, params: Namespace):
         super().__init__()
@@ -61,7 +62,7 @@ class BaseClassificationModel(LightningModule):
         pred_y = t.eye(4)[maxes].to(self.device)
         y = y.int()
         self.test_accuracy.update(pred_y, y)
-        return 
+        return
 
     def test_epoch_end(self, outputs):
         accuracy = self.test_accuracy.compute()
@@ -78,9 +79,9 @@ class BaseClassificationModel(LightningModule):
         b2 = self.params.b2
 
         optimizer = t.optim.Adam(
-            self.generator.parameters(), lr=lr, betas=(b1, b2)
+            self.generator.parameters(), lr=lr, betas=(b1, b2),  # weight_decay=0.001
         )
-        
+
         scheduler = t.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
             mode="min",

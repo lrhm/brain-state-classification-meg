@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import LightningDataModule
 from .preprocess.preprocess import preprocess
 
+
 class CustomDataModule(LightningDataModule):
     def __init__(self, params):
         super().__init__()
@@ -26,7 +27,10 @@ class CustomDataModule(LightningDataModule):
             self.train_data, train=True, imsize=self.params.imsize
         )
         return DataLoader(
-            dataset, batch_size=self.train_batch_size, drop_last=True, num_workers=3,
+            dataset,
+            batch_size=self.train_batch_size,
+            drop_last=True,
+            num_workers=3,
         )
 
     def val_dataloader(self):
@@ -35,7 +39,10 @@ class CustomDataModule(LightningDataModule):
             self.test_data, train=False, imsize=self.params.imsize
         )
         return DataLoader(
-            dataset, batch_size=self.train_batch_size, drop_last=True, num_workers=3,
+            dataset,
+            batch_size=self.train_batch_size,
+            drop_last=True,
+            num_workers=3,
         )
 
     def test_dataloader(self):
@@ -44,7 +51,10 @@ class CustomDataModule(LightningDataModule):
             self.test_data, train=False, imsize=self.params.imsize
         )
         return DataLoader(
-            dataset, batch_size=self.train_batch_size, drop_last=True, num_workers=3,
+            dataset,
+            batch_size=self.train_batch_size,
+            drop_last=True,
+            num_workers=3,
         )
 
 
@@ -63,9 +73,16 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         labels = self.data[0][idx][0].int()
-        # turns labels into one-hot encoding
         labels = t.eye(4)[labels]
-        return self.data[1][idx].unsqueeze(0), labels
+        x = self.data[1][idx]
+        patient_label = False
+        if patient_label:
+            patient_label = t.zeros(x.shape) + self.data[0][idx][1]
+            x = t.stack((x, patient_label))
+        else:
+            x = x.unsqueeze(0)
+        return x, labels
+
 
 def test():
     data_module = CustomDataModule()
