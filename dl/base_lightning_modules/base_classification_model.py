@@ -45,7 +45,7 @@ class SubjectAccuracies:
             task_label = task[subject_mask]
             if len(task_label) > 0:
                 acc.update(
-                    predicted_task_label.to(self.device),
+                   predicted_task_label.to(self.device),
                     task_label.to(self.device),
                 )
 
