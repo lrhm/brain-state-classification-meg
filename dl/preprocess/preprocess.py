@@ -49,20 +49,29 @@ def assign_labels(data: tuple[tuple[str, str, t.Tensor], ...]):
 
 
 def extract_preprocessed(
-    i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int, method="fourrier"
+    i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int, method="fourier"#None #"fourier"
 ):
     section = data[:, :, i:j]
     label_section = labels[:, :, i:j]
+    plot = False
     if method == "fourier":
-        rand_start =  t.randint(2,1000, (1,))[0]
-        section = t.fft.rfft(section, dim=2)[:, :, rand_start:rand_start+filter_freq]
+        #rand_start =  t.randint(2,1000, (1,))[0]
+        rand_start = 0
+        filter_freq = 1500
+        f_section = t.fft.rfft(section, dim=2)[:, :, rand_start:rand_start+filter_freq]
+        if plot:
+            _, axis = plt.subplots(nrows=2, ncols=1)
+            axis[0].set_title("Normalized Signal")
+            axis[0].plot(section[3,3])
+            axis[0].set(xlabel="Time", ylabel="Value [numeric]")
+            axis[1].plot(t.abs(f_section[3,3][1:]))
+            axis[1].set_title("Fourier")
+            axis[1].set(xlabel="Frequency", ylabel="Magnitude")
+            plt.show()
+
         section = t.view_as_real(section).view(section.shape[0], section.shape[1], -1)
         # ipdb.set_trace()    
         
-        if False:
-            visualize_waves(section[0, :10, :])
-        
-
     elif method == "wavelet":
         # computes wavelet
         section = t.from_numpy(pywt.cwt(section.numpy(), 4, "mexh", axis=2)[0]).squeeze(

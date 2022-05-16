@@ -1,6 +1,6 @@
 {
     "model": "conv1d",
-    "target": "/home/al/Github/brain-state-classification-meg/dlm/results",
+    "target": "/home/bluesk/Documents/brain-state-classification-meg/dlm/results",
     "cuda": true,
     "train_batch_size": 12,
     "test_batch_size": 50,
@@ -18,6 +18,6 @@
     "max_epochs": 100,
     "early_stopping_patience": 5,
     "reduce_lr_on_plateau_patience": 0,
-    "data_location": "./dataset/Data_Ass3/Cross/",
+    "data_location": "/mnt/dla3/Data_Ass3/Cross/",
     "crop": 64
 }
