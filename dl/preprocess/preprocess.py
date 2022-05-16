@@ -49,14 +49,15 @@ def assign_labels(data: tuple[tuple[str, str, t.Tensor], ...]):
 
 
 def extract_preprocessed(
-    i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int, method="fourier"
+    i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int, method="fourrier"
 ):
 
     
     section = data[:, :, i:j]
     label_section = labels[:, :, i:j]
     if method == "fourier":
-        section = t.fft.rfft(section, dim=2)[:, :, 50:50+filter_freq]
+        rand_start =  t.randint(2,1000, (1,))[0]
+        section = t.fft.rfft(section, dim=2)[:, :, rand_start:rand_start+filter_freq]
         section = t.view_as_real(section).view(section.shape[0], section.shape[1], -1)
         # ipdb.set_trace()    
         
@@ -69,7 +70,8 @@ def extract_preprocessed(
         section = t.from_numpy(pywt.cwt(section.numpy(), 4, "mexh", axis=2)[0]).squeeze(
             0
         )
-        section = section[:, :, 5:filter_freq]
+        rand_start = t.randint(2,1000, (1,))[0]
+        section = section[:, :, rand_start: rand_start + filter_freq]
         # section = t.cat((section[:,:,:20], section[:,:,-20:]), dim=2)
         # ipdb.set_trace()
         # visualize_waves(section[0, :10, :])
@@ -78,7 +80,7 @@ def extract_preprocessed(
 
 
 def window_data(
-    data: t.Tensor, step_size: int, *, window_size: int = 1500, filter_freq: int = 60
+    data: t.Tensor, step_size: int, *, window_size: int = 1500, filter_freq: int = 69
 ):
     # creates a list of overlapping segments
     vars = t.var(data[:, 2:], dim=2).unsqueeze(-1)

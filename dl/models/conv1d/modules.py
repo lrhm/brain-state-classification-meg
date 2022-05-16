@@ -83,9 +83,9 @@ class FitConv1dClassifier(nn.Module):
     def __init__(self, in_channels=248, num_class=4):
         super(FitConv1dClassifier, self).__init__()
 
-        self.dim = 128
-        self.kernel_size = 1
-        self.droupout = 0.1
+        self.dim = 64
+        self.kernel_size = 4   
+        self.droupout = 0.01
         # 248x195
         self.conv1 = Conv1DBlock(
             in_channels,
@@ -120,7 +120,7 @@ class FitConv1dClassifier(nn.Module):
         # self.bclassifier = nn.Sequential(
         #     nn.Linear(34368, 2000), nn.ReLU(), nn.Linear(2000, num_class)
         # )
-        self.noise_layer = GaussianNoise(2, False)
+        self.noise_layer = GaussianNoise(0.1, False)
 
     def forward(self, x):
         # ipdb.set_trace()
@@ -145,7 +145,7 @@ class GaussianNoise(nn.Module):
 
     def forward(self, x):
         if self.training:
-            if self.minmax:
+            if self.minmax: 
                 range = x.max() - x.min()
                 noise = t.randn(x.shape).to(x.device) * range * self.stddev
             else:
@@ -159,8 +159,8 @@ class GaussianNoise(nn.Module):
 class FATConv1dClassifier(nn.Module):
     def __init__(self, in_channels=248, num_class=4):
         super(FATConv1dClassifier, self).__init__()
-        hidden_channel = 256
-        num_layers = 4
+        hidden_channel = 512
+        num_layers = 6
         for i in range(num_layers):
             setattr(
                 self,
@@ -171,7 +171,7 @@ class FATConv1dClassifier(nn.Module):
                     kernel_size=3,
                     stride=1,
                     padding=1,
-                    drouput=0.5 if i != 0 else 0,
+                    drouput=0.1 if i != num_layers else 0,
                 ),
             )
             in_channels = hidden_channel
@@ -257,7 +257,7 @@ class Conv1DResidual(nn.Module):
         self, in_channels, out_channels, kernel_size=16, stride=1, padding=1, drouput=0
     ):
         super(Conv1DResidual, self).__init__()
-        self.conv1 = nn.Conv1d( in_channels, out_channels, 16, stride, padding)
+        self.conv1 = nn.Conv1d( in_channels, out_channels, 1, stride, padding)
         self.bn1 = nn.BatchNorm1d(out_channels)
         self.relu = nn.ReLU()
         self.conv2 = nn.Conv1d(out_channels, out_channels, 16, stride, padding)
