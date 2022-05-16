@@ -23,8 +23,9 @@ class SubjectAccuracies:
     def one_hot_to_label(self, one_hot: t.Tensor):
         return t.argmax(one_hot)
 
-    def compute(self):
-        return [acc.compute() for acc in self.accuracies]
+    def compute(self, mean=False):
+        accuracies = t.tensor(tuple(acc.compute() for acc in self.accuracies))
+        return accuracies if not mean else t.mean(accuracies)
 
     def reset(self):
         for acc in self.accuracies:
@@ -88,13 +89,18 @@ class BaseClassificationModel(LightningModule):
         return {"loss": loss}
 
     def training_epoch_end(self, outputs):
+        accuracies = {
+            f"train_acc_s{i}": acc
+            for i, acc in enumerate(self.train_accuracies.compute())
+        }
+        self.log(
+            "mean_accuracy",
+            self.train_accuracies.compute(mean=True),
+            prog_bar=True,
+        )
+        self.log("train_performace", accuracies)
         avg_loss = t.stack([x["loss"] for x in outputs]).mean()
         self.log("avg_train_loss", avg_loss, prog_bar=True)
-        accuracies = self.train_accuracies.compute()
-        for i, acc in enumerate(accuracies):
-            self.log(
-                f"train_acc_s{i}", acc, prog_bar=True,
-            )
         self.train_accuracies.reset()
 
     def validation_step(
@@ -114,11 +120,15 @@ class BaseClassificationModel(LightningModule):
         return {"val_loss": self.loss(y, pred_y)}
 
     def validation_epoch_end(self, outputs):
-        accuracies = self.val_accuracies.compute()
-        for i, acc in enumerate(accuracies):
-            self.log(
-                f"val_acc_s{i}", acc, prog_bar=True,
-            )
+        accuracies = {
+            f"val_acc_s{i}": acc
+            for i, acc in enumerate(self.val_accuracies.compute())
+        }
+        self.log(
+            "mean_val_acc",
+            self.val_accuracies.compute(mean=True),
+            prog_bar=True,
+        )
         self.val_accuracies.reset()
         t.save(
             self.state_dict(),
@@ -126,6 +136,7 @@ class BaseClassificationModel(LightningModule):
         )
         avg_loss = t.stack([x["val_loss"] for x in outputs]).mean()
         self.log("val_loss", avg_loss, prog_bar=True)
+        self.log("val_performace", accuracies)
         return {"val_loss": avg_loss}
 
     def test_step(self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int):
@@ -140,16 +151,25 @@ class BaseClassificationModel(LightningModule):
         )
 
     def test_epoch_end(self, outputs):
-        accuracies = self.test_accuracies.compute()
-        self.val_accuracies.reset()
+        accuracies = {
+            f"test_acc_s{i}": acc
+            for i, acc in enumerate(self.val_accuracies.compute())
+        }
+        for key, acc in accuracies.items():
+            self.log(
+                key, acc, prog_bar=True,
+            )
         t.save(
             self.state_dict(),
             os.path.join(self.params.save_path, "checkpoint.ckpt"),
         )
-        test_metrics = {
-            f"accuracy_subject_{i}": acc for i, acc in enumerate(accuracies)
-        }
-        self.log("test_performance", test_metrics, prog_bar=True)
+        mean_accuracy = self.test_accuracies.compute(mean=True)
+        self.log(
+            "test_performace",
+            accuracies | {"mean_accuracy": mean_accuracy},
+            prog_bar=True,
+        )
+        self.test_accuracies.reset()
 
     def configure_optimizers(self):
         lr = self.params.lr
