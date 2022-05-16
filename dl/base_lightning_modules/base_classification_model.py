@@ -92,16 +92,14 @@ class BaseClassificationModel(LightningModule):
         accuracies = {
             f"train_acc_s{i}": acc
             for i, acc in enumerate(self.train_accuracies.compute())
-        }
+        } | {"mean_train_acc": self.train_accuracies.compute(mean=True)}
+        self.train_accuracies.reset()
         self.log(
-            "mean_accuracy",
-            self.train_accuracies.compute(mean=True),
-            prog_bar=True,
+            "mean_accuracy", accuracies["mean_accuracy"], prog_bar=True,
         )
-        self.log("train_performace", accuracies)
+        self.log("train_performance", accuracies)
         avg_loss = t.stack([x["loss"] for x in outputs]).mean()
         self.log("avg_train_loss", avg_loss, prog_bar=True)
-        self.train_accuracies.reset()
 
     def validation_step(
         self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int
@@ -123,20 +121,18 @@ class BaseClassificationModel(LightningModule):
         accuracies = {
             f"val_acc_s{i}": acc
             for i, acc in enumerate(self.val_accuracies.compute())
-        }
-        self.log(
-            "mean_val_acc",
-            self.val_accuracies.compute(mean=True),
-            prog_bar=True,
-        )
+        } | {"mean_accuracy": self.val_accuracies.compute(mean=True)}
         self.val_accuracies.reset()
+        self.log(
+            "mean_val_acc", accuracies["mean_accuracy"], prog_bar=True,
+        )
         t.save(
             self.state_dict(),
             os.path.join(self.params.save_path, "checkpoint.ckpt"),
         )
         avg_loss = t.stack([x["val_loss"] for x in outputs]).mean()
         self.log("val_loss", avg_loss, prog_bar=True)
-        self.log("val_performace", accuracies)
+        self.log("val_performance", accuracies)
         return {"val_loss": avg_loss}
 
     def test_step(self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int):
@@ -165,7 +161,7 @@ class BaseClassificationModel(LightningModule):
         )
         mean_accuracy = self.test_accuracies.compute(mean=True)
         self.log(
-            "test_performace",
+            "test_performance",
             accuracies | {"mean_accuracy": mean_accuracy},
             prog_bar=True,
         )
