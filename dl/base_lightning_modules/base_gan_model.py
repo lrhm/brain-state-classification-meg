@@ -2,23 +2,19 @@ import torch as t
 import torch.nn as nn
 import torch.nn.functional as F
 from pytorch_lightning import LightningModule
-from .base_model import BaseModel
-import ipdb
-import h5py
-from .utils.data_manager import DataManger
-from .utils.visualize_predictions import visualize_predictions
 from argparse import Namespace
 
+from ..base_torch_modules.resnetmodel import ResNetFrameDiscriminator
 
-class GANLightning(BaseModel):
+
+class GANLightning(LightningModule):
     def __init__(
         self, params: Namespace,
     ):
         super().__init__(params)
 
-        self.frame_discriminator = nn.Sequential()
-        self.temporal_discriminator = nn.Sequential()
-        self.fake_y_detached = t.tensor(0.0)
+        self.discriminator = ResNetFrameDiscriminator(params)
+        self.temporal_discriminator = ResNetFrameDiscriminator(params)
 
     def adversarial_loss(self, y_hat: t.Tensor, y: t.Tensor):
         return F.binary_cross_entropy(y_hat, y)
@@ -27,7 +23,7 @@ class GANLightning(BaseModel):
         self, batch: tuple[t.Tensor, t.Tensor], batch_idx: int, optimizer_idx: int
     ):
         x, y = batch
-        batch_size, x_seq_len, channels, height, width = x.shape
+        batch_size, 248, 59, height, width = x.shape
         batch_size, y_seq_len, channels, height, width = y.shape
         # train generator
         if optimizer_idx == 0:

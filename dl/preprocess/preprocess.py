@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 import ipdb
 import pywt
 
+def visualize_waves(data: t.Tensor):
+    for i in range(data.shape[0]):
+        plt.plot(data[i, :].numpy())
+    plt.show()
+
 
 def get_dataset_name(file_name: str):
     return "_".join(os.path.basename(file_name).split("_")[:-1])
@@ -46,24 +51,34 @@ def assign_labels(data: tuple[tuple[str, str, t.Tensor], ...]):
 def extract_preprocessed(
     i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int, method="fourier"
 ):
+
+    
     section = data[:, :, i:j]
     label_section = labels[:, :, i:j]
     if method == "fourier":
-        section = t.fft.rfft(section, dim=2)[:, :, 5:filter_freq]
+        section = t.fft.rfft(section, dim=2)[:, :, 50:50+filter_freq]
         section = t.view_as_real(section).view(section.shape[0], section.shape[1], -1)
+        # ipdb.set_trace()    
+        
+        if False:
+            visualize_waves(section[0, :10, :])
+        
+
     elif method == "wavelet":
         # computes wavelet
         section = t.from_numpy(pywt.cwt(section.numpy(), 4, "mexh", axis=2)[0]).squeeze(
             0
         )
+        section = section[:, :, 5:filter_freq]
         # section = t.cat((section[:,:,:20], section[:,:,-20:]), dim=2)
-        ipdb.set_trace()
+        # ipdb.set_trace()
+        # visualize_waves(section[0, :10, :])
     section[:, :2] = label_section[:, :, : section.shape[-1]]
     return section
 
 
 def window_data(
-    data: t.Tensor, step_size: int, *, window_size: int = 1500, filter_freq: int = 300
+    data: t.Tensor, step_size: int, *, window_size: int = 1500, filter_freq: int = 60
 ):
     # creates a list of overlapping segments
     vars = t.var(data[:, 2:], dim=2).unsqueeze(-1)
@@ -122,7 +137,13 @@ def downsample(data: t.Tensor, cut_freq: int = 100) -> t.Tensor:
 """
 
 
-def normalize_freqs(windowed_data: t.Tensor, fancy=True):
+def normalize_freqs(windowed_data: t.Tensor, fancy=True, dumb=True):
+
+    if dumb:
+        windowed_data[:, 2:, :] = windowed_data[:, 2:, :] / 10**14
+        return windowed_data
+
+
     if not fancy:
         maxs = t.max(windowed_data, dim=2)[0][:, 2:, None]
         mins = t.min(windowed_data, dim=2)[0][:, 2:, None]
