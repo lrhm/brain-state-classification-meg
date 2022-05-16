@@ -51,8 +51,6 @@ def assign_labels(data: tuple[tuple[str, str, t.Tensor], ...]):
 def extract_preprocessed(
     i, j, labels: t.Tensor, data: t.Tensor, filter_freq: int, method="fourrier"
 ):
-
-    
     section = data[:, :, i:j]
     label_section = labels[:, :, i:j]
     if method == "fourier":
