@@ -159,8 +159,8 @@ class GaussianNoise(nn.Module):
 class FATConv1dClassifier(nn.Module):
     def __init__(self, in_channels=248, num_class=4):
         super(FATConv1dClassifier, self).__init__()
-        hidden_channel = 256
-        num_layers = 6
+        hidden_channel = 512
+        num_layers = 7
         for i in range(num_layers):
             setattr(
                 self,
@@ -168,10 +168,10 @@ class FATConv1dClassifier(nn.Module):
                 Conv1DBlock(
                     in_channels,
                     hidden_channel,
-                    kernel_size=3,
+                    kernel_size=4,
                     stride=1,
                     padding=1,
-                    drouput=0.2 if i != 0 else 0,
+                    drouput=0.1 if i != 0 else 0,
                 ),
             )
             in_channels = hidden_channel
